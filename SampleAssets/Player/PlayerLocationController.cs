@@ -188,7 +188,8 @@ namespace Niantic.Lightship.Maps.SampleAssets.Player
                 Time.deltaTime);
 
             transform.position = _currentMapPosition;
-            _model.UpdatePlayerState(movementDistance);
+            if (_model != null)
+                _model.UpdatePlayerState(movementDistance);
         }
 
         private void UpdateEditorInput()
