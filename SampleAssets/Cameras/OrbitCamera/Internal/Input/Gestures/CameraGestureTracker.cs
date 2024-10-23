@@ -14,6 +14,9 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera.Internal.Input
     /// </summary>
     internal class CameraGestureTracker : IScreenInputGesture
     {
+        public bool IsNavigating;
+        public bool IsTrueNorthFacing;
+
         private const float GroundClampCosThreshold = -0.1f;
         private static Plane _groundPlane = new(Vector3.up, 0.0f);
 
@@ -57,12 +60,14 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera.Internal.Input
         /// Normalized fraction (0.0 - 1.0) of where we are
         /// between fully zoomed in and fully zoomed out.
         /// </summary>
-        public float ZoomFraction { get; private set; }
+        public float ZoomFraction { get; set; }
 
         /// <summary>
         /// Current rotation, in degrees.
         /// </summary>
         public float RotationAngleDegrees { get; private set; }
+
+        public Vector3 CameraMovement { get; private set; }
 
         private bool IsCurrentlyRotating =>
             !_isCurrentlyZooming &&
@@ -373,6 +378,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera.Internal.Input
             return PlatformAgnosticInput.IsOverUIObject(inputPos);
         }
 
+        /*
         private void ProcessSwipe()
         {
             bool currentlyRotating = IsCurrentlyRotating;
@@ -425,7 +431,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera.Internal.Input
 
             _wasRotatingLastFrame = currentlyRotating;
         }
-
+        */
         // Rotates from directionA toward directionB
         private void RotateByDirections(Vector3 directionA, Vector3 directionB, float direction)
         {
@@ -449,5 +455,96 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera.Internal.Input
                 RotationAngleDegrees += angle;
             }
         }
+        
+
+        private void ProcessSwipe()
+        {
+            bool currentlyMoving = IsCurrentlyRotating;  // Keeping the "IsCurrentlyRotating" logic for detecting swipe
+
+            if (currentlyMoving)
+            {
+                var touch = _transformationEvents[0];
+                var inputTransform = touch.Transform;
+
+                if (!_wasRotatingLastFrame)
+                {
+                    // Start only if phase is 'Began' and not over UI
+                    if (touch.Phase != InputPhase.Began || IsTransformOverUI(inputTransform))
+                    {
+                        return;
+                    }
+                }
+
+                var swipePosition = inputTransform.Position;
+
+                if (_lastSwipeFrame != Time.frameCount - 1)
+                {
+                    // No delta on the first frame, fix by using initial swipe position
+                    _lastSwipePosition = swipePosition;
+                }
+
+
+                if (IsNavigating && !IsTrueNorthFacing)
+                {
+                    //For rotation
+                    var touchRay = _raycastCamera.ViewportPointToRay(swipePosition);
+                    var lastTouchRay = _raycastCamera.ViewportPointToRay(_lastSwipePosition);
+
+                    touchRay.direction = ClampDirToGround(touchRay.direction);
+                    lastTouchRay.direction = ClampDirToGround(lastTouchRay.direction);
+
+                    _groundPlane.Raycast(touchRay, out float rayDist);
+                    _groundPlane.Raycast(lastTouchRay, out float lastRayDist);
+
+                    var groundTouch = touchRay.GetPoint(rayDist);
+                    var lastGroundTouch = lastTouchRay.GetPoint(lastRayDist);
+
+                    var position = _focusObject.transform.position;
+                    var centerToLast = (lastGroundTouch - position).normalized;
+                    var centerToThis = (groundTouch - position).normalized;
+                    float determinant = centerToLast.x * centerToThis.z - centerToLast.z * centerToThis.x;
+
+                    RotateByDirections(centerToLast, centerToThis, determinant);
+                }
+                else
+                {
+                    // Calculate swipe delta (movement on screen)
+                    Vector2 swipeDelta = swipePosition - _lastSwipePosition;
+
+                    // Adjust camera movement speed (tweak to your preference)
+                    float movementSpeed = Mathf.Clamp(ZoomFraction * 1000f, 100f, 1000f);
+
+                    // Translate the camera based on swipe delta
+                    MoveCamera(swipeDelta, movementSpeed);
+                }
+
+                _lastSwipePosition = swipePosition;
+                _lastSwipeFrame = Time.frameCount;
+            }
+
+            _wasRotatingLastFrame = currentlyMoving;
+        }
+
+        private void MoveCamera(Vector2 swipeDelta, float movementSpeed)
+        {
+            // Get the camera's forward and right vectors for world-space movement
+            Vector3 forwardMovement = _raycastCamera.transform.forward; // Forward direction in world space
+            Vector3 rightMovement = _raycastCamera.transform.right;     // Right direction in world space
+
+            // We don't want to move the camera vertically based on the forward vector (only on x and z plane),
+            // so set the y-component of forward and right to zero
+            forwardMovement.y = 0f;
+            rightMovement.y = 0f;
+
+            // Normalize the vectors to avoid scaling issues
+            forwardMovement.Normalize();
+            rightMovement.Normalize();
+
+            // Calculate camera movement based on swipe direction and the camera's current orientation
+            Vector3 cameraMovement = (rightMovement * -swipeDelta.x + forwardMovement * -swipeDelta.y) * movementSpeed;
+
+            CameraMovement += cameraMovement;
+        }
+
     }
 }
