@@ -67,7 +67,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera.Internal.Input
         /// </summary>
         public float RotationAngleDegrees { get; private set; }
 
-        public Vector3 CameraMovement { get; private set; }
+        public Vector3 CameraMovement { get; set; }
 
         private bool IsCurrentlyRotating =>
             !_isCurrentlyZooming &&
@@ -137,55 +137,55 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera.Internal.Input
                 switch (touch.Phase)
                 {
                     case InputPhase.Began when _lastTouch0 == null:
-                    {
-                        _lastTouch0 = touch;
-                        _lastTouch0Position = _lastTouch0.Transform.Position;
-                        touch0Id = possibleTouchId;
-                        touch0 = _lastTouch0;
-                        break;
-                    }
-                    case InputPhase.Began:
-                    {
-                        if (_lastTouch1 == null)
                         {
-                            _lastTouch1 = touch;
-                            _lastTouch1Position = _lastTouch1.Transform.Position;
-                            touch1Id = possibleTouchId;
-                            touch1 = _lastTouch1;
+                            _lastTouch0 = touch;
+                            _lastTouch0Position = _lastTouch0.Transform.Position;
+                            touch0Id = possibleTouchId;
+                            touch0 = _lastTouch0;
+                            break;
                         }
+                    case InputPhase.Began:
+                        {
+                            if (_lastTouch1 == null)
+                            {
+                                _lastTouch1 = touch;
+                                _lastTouch1Position = _lastTouch1.Transform.Position;
+                                touch1Id = possibleTouchId;
+                                touch1 = _lastTouch1;
+                            }
 
-                        break;
-                    }
+                            break;
+                        }
                     case InputPhase.Ended:
                     case InputPhase.Canceled:
-                    {
-                        if (_lastTouch0 != null && possibleTouchId == touch0Id)
                         {
-                            // Done zooming for now
-                            _lastTouch0 = null;
-                        }
+                            if (_lastTouch0 != null && possibleTouchId == touch0Id)
+                            {
+                                // Done zooming for now
+                                _lastTouch0 = null;
+                            }
 
-                        if (_lastTouch1 != null && possibleTouchId == touch1Id)
-                        {
-                            _lastTouch1 = null;
-                        }
+                            if (_lastTouch1 != null && possibleTouchId == touch1Id)
+                            {
+                                _lastTouch1 = null;
+                            }
 
-                        break;
-                    }
+                            break;
+                        }
                     case InputPhase.Held when _lastTouch0 != null && possibleTouchId == touch0Id:
-                    {
-                        touch0 = touch;
-                        break;
-                    }
-                    case InputPhase.Held:
-                    {
-                        if (_lastTouch1 != null && possibleTouchId == touch1Id)
                         {
-                            touch1 = touch;
+                            touch0 = touch;
+                            break;
                         }
+                    case InputPhase.Held:
+                        {
+                            if (_lastTouch1 != null && possibleTouchId == touch1Id)
+                            {
+                                touch1 = touch;
+                            }
 
-                        break;
-                    }
+                            break;
+                        }
                     case InputPhase.Hovered:
                         break;
 
@@ -316,54 +316,54 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera.Internal.Input
             {
                 // At this point we know we have a valid first tap, see if we have a 2nd.
                 case true when _secondZoomTap == null:
-                {
-                    _secondZoomTap = _transformationEvents.FirstOrDefault(
-                        e => e.Phase == InputPhase.Began && !IsTransformOverUI(e.Transform));
-
-                    if (_secondZoomTap != null)
                     {
-                        _secondZoomTap.Consume(this);
-                        _prevZoomPosition = _secondZoomTap.Transform.Position;
-                    }
+                        _secondZoomTap = _transformationEvents.FirstOrDefault(
+                            e => e.Phase == InputPhase.Began && !IsTransformOverUI(e.Transform));
 
-                    return true;
-                }
-                case true when _firstZoomTap != null && _secondZoomTap != null:
-                {
-                    // Zooming detected
-                    var duplicateBeganZoomEvent = _transformationEvents.FirstOrDefault(e =>
-                        e.Transform.Id == _secondZoomTap.Transform.Id &&
-                        e.Phase == InputPhase.Began);
+                        if (_secondZoomTap != null)
+                        {
+                            _secondZoomTap.Consume(this);
+                            _prevZoomPosition = _secondZoomTap.Transform.Position;
+                        }
 
-                    if (duplicateBeganZoomEvent != null)
-                    {
-                        duplicateBeganZoomEvent.Consume(this);
                         return true;
                     }
-
-                    var currentZoomEvent = _transformationEvents.FirstOrDefault(e =>
-                        e.Transform.Id == _secondZoomTap.Transform.Id &&
-                        e.Phase == InputPhase.Held);
-
-                    if (currentZoomEvent == null)
+                case true when _firstZoomTap != null && _secondZoomTap != null:
                     {
-                        ResetDoubleTapZoom();
-                        return false;
+                        // Zooming detected
+                        var duplicateBeganZoomEvent = _transformationEvents.FirstOrDefault(e =>
+                            e.Transform.Id == _secondZoomTap.Transform.Id &&
+                            e.Phase == InputPhase.Began);
+
+                        if (duplicateBeganZoomEvent != null)
+                        {
+                            duplicateBeganZoomEvent.Consume(this);
+                            return true;
+                        }
+
+                        var currentZoomEvent = _transformationEvents.FirstOrDefault(e =>
+                            e.Transform.Id == _secondZoomTap.Transform.Id &&
+                            e.Phase == InputPhase.Held);
+
+                        if (currentZoomEvent == null)
+                        {
+                            ResetDoubleTapZoom();
+                            return false;
+                        }
+
+                        currentZoomEvent.Consume(this);
+                        var newZoomPosition = currentZoomEvent.Transform.Position;
+
+                        if (currentZoomEvent.Phase == InputPhase.Held)
+                        {
+                            float y = (newZoomPosition - _prevZoomPosition).y;
+                            ZoomFraction = Mathf.Clamp01(ZoomFraction - y * _settings.DoubleTapZoomSpeed);
+                        }
+
+                        _prevZoomPosition = newZoomPosition;
+
+                        return true;
                     }
-
-                    currentZoomEvent.Consume(this);
-                    var newZoomPosition = currentZoomEvent.Transform.Position;
-
-                    if (currentZoomEvent.Phase == InputPhase.Held)
-                    {
-                        float y = (newZoomPosition - _prevZoomPosition).y;
-                        ZoomFraction = Mathf.Clamp01(ZoomFraction - y * _settings.DoubleTapZoomSpeed);
-                    }
-
-                    _prevZoomPosition = newZoomPosition;
-
-                    return true;
-                }
                 default:
                     return false;
             }
@@ -455,7 +455,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera.Internal.Input
                 RotationAngleDegrees += angle;
             }
         }
-        
+
 
         private void ProcessSwipe()
         {
@@ -512,7 +512,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera.Internal.Input
                     Vector2 swipeDelta = swipePosition - _lastSwipePosition;
 
                     // Adjust camera movement speed (tweak to your preference)
-                    float movementSpeed = Mathf.Clamp(ZoomFraction * 1000f, 100f, 1000f);
+                    float movementSpeed = Mathf.Clamp(ZoomFraction * 1000f, 200f, 1000f);
 
                     // Translate the camera based on swipe delta
                     MoveCamera(swipeDelta, movementSpeed);

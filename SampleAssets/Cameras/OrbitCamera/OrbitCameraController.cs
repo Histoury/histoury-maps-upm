@@ -51,7 +51,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
         [SerializeField] float _heading;
         public bool _isFacingOn;
         [SerializeField] Coroutine _rotateCoroutine;
-
+        [SerializeField] Coroutine _returnToOriginalPosCoroutine;
         [SerializeField] bool _isTransitioning;
         public void Awake()
         {
@@ -222,6 +222,8 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
             }
             else
             {
+                if (_gestureTracker.CameraMovement != Vector3.zero && _returnToOriginalPosCoroutine == null)
+                    _returnToOriginalPosCoroutine = StartCoroutine(MoveBackToOrigin());
                 float rotationAngleDegrees = _gestureTracker.RotationAngleDegrees;
 
                 rotationAngleDegrees += _heading;
@@ -268,6 +270,26 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
             }
             _heading = -_gestureTracker.RotationAngleDegrees;
             _rotateCoroutine = null;
+        }
+
+        IEnumerator MoveBackToOrigin()
+        {
+            yield return new WaitForSeconds(5f);
+
+            float transitionDuration = 0.5f;
+            float elapsedTime = 0f;
+
+            var currentCameraMovement = _gestureTracker.CameraMovement;
+
+            while (elapsedTime < transitionDuration)
+            {
+                elapsedTime += Time.deltaTime;
+                float lerpFactor = Mathf.Clamp01(elapsedTime / transitionDuration);
+                _gestureTracker.CameraMovement = Vector3.Lerp(currentCameraMovement, Vector3.zero, lerpFactor);
+                yield return null;
+            }
+            _gestureTracker.CameraMovement = Vector3.zero;
+            _returnToOriginalPosCoroutine = null;
         }
     }
 }
