@@ -29,7 +29,7 @@ namespace Niantic.Lightship.Maps.Themes
             }
             else
             {
-                Log.Warn("Skybox does not contain a rotation property.");
+                //Log.Warn("Skybox does not contain a rotation property.");
             }
         }
     }

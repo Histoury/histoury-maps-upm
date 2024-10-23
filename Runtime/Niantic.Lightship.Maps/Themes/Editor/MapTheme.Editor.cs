@@ -23,6 +23,7 @@ namespace Niantic.Lightship.Maps.Themes
         {
             if (_showWarning && _skybox != null && !_skybox.HasProperty(Tint))
             {
+                return;
                 const string title = "WARNING!";
                 const string message = "Skybox color cannot be applied to this material.";
                 const string okButtonLabel = "OK";
