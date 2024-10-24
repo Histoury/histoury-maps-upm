@@ -36,6 +36,9 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera.Internal.Input
         // 2nd input, only not null during a double-tap-to-zoom
         private InputEvent _secondZoomTap;
 
+        private Vector3 _initialWorldPinchPoint;
+        private bool _isPinching = false;
+
         private bool _isCurrentlyZooming;
         private bool _wasRotatingLastFrame;
         private Vector3 _lastTouch0Position;
@@ -169,7 +172,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera.Internal.Input
                             {
                                 _lastTouch1 = null;
                             }
-
+                            _isPinching = false;
                             break;
                         }
                     case InputPhase.Held when _lastTouch0 != null && possibleTouchId == touch0Id:
@@ -221,6 +224,46 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera.Internal.Input
             float curDist = (touch1Pos - touch0Pos).magnitude;
             float prevDist = (lastPos1 - lastPos0).magnitude;
             float pinchChange = (prevDist - curDist) * screenWidthInches;
+
+            if (!IsNavigating)
+            {
+                Vector2 pinchMidPoint = (touch0Pos + touch1Pos) / 2;
+                pinchMidPoint.x *= Screen.width;  // Convert normalized X to pixel X
+                pinchMidPoint.y *= Screen.height;
+
+                if (!_isPinching)
+                {
+                    _isPinching = true;
+
+                    Debug.Log($"Pinch mid point: {pinchMidPoint}");
+                    Ray ray = _raycastCamera.ScreenPointToRay(new Vector3(pinchMidPoint.x, pinchMidPoint.y, 0));  // Screen midpoint
+
+                    Plane groundPlane = new Plane(Vector3.up, new Vector3(0, _focusObject.transform.position.y, 0));  // Assuming ground plane
+
+                    float enter;
+                    if (groundPlane.Raycast(ray, out enter))
+                    {
+                        // Store the initial world pinch point
+                        _initialWorldPinchPoint = ray.GetPoint(enter);
+                        Debug.Log($"Captured initial pinch point: {_initialWorldPinchPoint}");
+                    }
+                }
+
+                Vector3 directionToPinch = (_initialWorldPinchPoint - _raycastCamera.transform.position).normalized;
+
+                // Adjust the movement magnitude
+                float movementMagnitude = Mathf.Abs(pinchChange) * _settings.TouchPinchZoomSpeed * 2000f;
+
+                // Apply movement in the correct direction, based on pinchChange (invert if zooming in)
+                if (pinchChange > 0)  // Zooming in
+                {
+                    CameraMovement += -directionToPinch * movementMagnitude;
+                }
+                else  // Zooming out
+                {
+                    CameraMovement += directionToPinch * movementMagnitude;
+                }
+            }
 
             ZoomFraction = Mathf.Clamp01(ZoomFraction + pinchChange * _settings.TouchPinchZoomSpeed);
 
