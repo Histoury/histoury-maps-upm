@@ -67,7 +67,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
                 _maximumPitchDegrees,
                 _verticalFocusOffset);
 
-            _gestureTracker.ZoomFraction = 1f;
+            //_gestureTracker.ZoomFraction = 1f;
         }
 
         public void SetIsNavigating(bool value)
@@ -86,11 +86,17 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
                         _maximumPitchDegrees,
                         _verticalFocusOffset);
                     _zoomCurveEvaluator = zoomCurveEvaluator;
+
+                    if (_returnToOriginalPosCoroutine != null)
+                    {
+                        StopCoroutine(_returnToOriginalPosCoroutine);
+                        _returnToOriginalPosCoroutine = null;
+                    }
                 }
                 else
                 {
                     var zoomCurveEvaluator = new ZoomCurveEvaluator(
-                        _minimumZoomDistance,
+                        550f,
                         _maximumZoomDistance,
                         60f,
                         _maximumPitchDegrees,
@@ -177,7 +183,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
                 Quaternion targetRot = Quaternion.Euler(pitchDegrees, rotationAngleDegrees, 0.0f);
 
                 //For update function to correctly update position dynamically
-                _gestureTracker.CameraMovement = new Vector3(x, 0, z) + _focusObject.transform.position;
+                _gestureTracker.MaxCameraMovement = _gestureTracker.CameraMovement = new Vector3(x, 0, z) + _focusObject.transform.position;
 
                 Vector3 currentCamPos = _camera.transform.position;
                 Quaternion currentCamRot = _camera.transform.rotation;
@@ -308,7 +314,20 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
         }
         private IEnumerator MoveBackToOrigin()
         {
-            yield return new WaitForSeconds(5f);  // Optional delay before moving back to origin
+            var currentMovement = _gestureTracker.CameraMovement;
+
+
+            bool IsIdle = false;
+            while (!IsIdle)
+            {
+                yield return new WaitForSeconds(5f);  // Optional delay before moving back to origin
+                if (currentMovement == _gestureTracker.CameraMovement)
+                    IsIdle = true;
+                else
+                    currentMovement = _gestureTracker.CameraMovement;
+            }
+
+
             Debug.Log("Start return");
 
             float moveDuration = 0.5f;
@@ -317,13 +336,6 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
             if (_isFacingOn)
             {
                 rotationAngleDegrees += Input.compass.trueHeading;
-            }
-            else
-            {
-                if (_rotateCoroutine == null && _gestureTracker.RotationAngleDegrees != -_heading)
-                {
-                    _rotateCoroutine = StartCoroutine(RotateBackToOrigin());
-                }
             }
 
             rotationAngleDegrees += _heading;
@@ -341,7 +353,6 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
             var offsetPos = new Vector3(x, 0, z);
 
 
-            var currentMovement = _gestureTracker.CameraMovement;
             var targetMovement = _focusObject.transform.position + offsetPos;
 
             while (elapsedTime < moveDuration)

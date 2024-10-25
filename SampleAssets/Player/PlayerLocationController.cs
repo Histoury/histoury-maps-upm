@@ -21,7 +21,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Player
     public class PlayerLocationController : MonoBehaviour
     {
         [SerializeField]
-        private LightshipMapView _lightshipMapView;
+        public LightshipMapView _lightshipMapView;
 
         [SerializeField]
         private float _editorMovementSpeed;
@@ -236,6 +236,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Player
 
             // Update the map's view based on where our player is
             _lightshipMapView.SetMapCenter(transform.position);
+            //Debug.Log($"Update map view");
         }
     }
 }

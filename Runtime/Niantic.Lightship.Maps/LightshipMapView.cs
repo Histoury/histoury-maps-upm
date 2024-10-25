@@ -536,7 +536,7 @@ namespace Niantic.Lightship.Maps
             mapTileObject.Dispose();
         }
 
-        private void ReloadMap()
+        public void ReloadMap()
         {
             // Release all active MapTileObjects
             foreach (var maptile in _activeMapTileObjects)
