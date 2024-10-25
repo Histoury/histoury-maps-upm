@@ -51,6 +51,9 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
         [SerializeField] float _heading;
         public bool _isFacingOn;
         [SerializeField] Coroutine _rotateCoroutine;
+        [SerializeField] Coroutine _rotateToTrueNorthFacing;
+        private float _currentAnimatingValueForTrueNorthFacing;
+
         [SerializeField] Coroutine _returnToOriginalPosCoroutine;
         [SerializeField] bool _isTransitioning;
 
@@ -67,7 +70,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
                 _maximumPitchDegrees,
                 _verticalFocusOffset);
 
-            //_gestureTracker.ZoomFraction = 1f;
+            //_gestureTracker.IsTrueNorthFacing = false;
         }
 
         public void SetIsNavigating(bool value)
@@ -95,6 +98,17 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
                 }
                 else
                 {
+                    if (_rotateCoroutine != null)
+                    {
+                        StopCoroutine(_rotateCoroutine);
+                        _rotateCoroutine = null;
+                    }
+                    if (_rotateToTrueNorthFacing != null)
+                    {
+                        StopCoroutine(_rotateToTrueNorthFacing);
+                        _rotateToTrueNorthFacing = null;
+                    }    
+
                     var zoomCurveEvaluator = new ZoomCurveEvaluator(
                         550f,
                         _maximumZoomDistance,
@@ -121,10 +135,13 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
             if (IsNavigating)
             {
                 float rotationAngleDegrees = _gestureTracker.RotationAngleDegrees;
+
+                /*
                 if (_isFacingOn)
                 {
                     rotationAngleDegrees += Input.compass.trueHeading;
                 }
+                */
 
                 rotationAngleDegrees += _heading;
                 float rotationAngleRadians = Mathf.Deg2Rad * rotationAngleDegrees;
@@ -169,7 +186,10 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
                 float rotationAngleDegrees = _gestureTracker.RotationAngleDegrees;
                 rotationAngleDegrees += _heading;
                 float rotationAngleRadians = Mathf.Deg2Rad * rotationAngleDegrees;
-                float zoomFraction = _gestureTracker.ZoomFraction = 1f;
+
+
+                //Calculate MinGesture
+                float zoomFraction = _gestureTracker.ZoomFraction = 0.3f;
 
                 float distance = _currentTopdownZoomDistance;// _zoomCurveEvaluator.GetDistanceFromZoomFraction(zoomFraction);
                 float elevMeters = _zoomCurveEvaluator.GetElevationFromDistance(distance);
@@ -178,12 +198,26 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
                 float x = -distance * Mathf.Sin(rotationAngleRadians);
                 float z = -distance * Mathf.Cos(rotationAngleRadians);
                 var offsetPos = new Vector3(x, elevMeters, z);
+                _gestureTracker.MinCameraMovement = new Vector3(x, 0, z) + _focusObject.transform.position;
+
+                Debug.Log($"Min {_gestureTracker.MinCameraMovement}");
+                zoomFraction = _gestureTracker.ZoomFraction = 1f;
+
+                distance = _currentTopdownZoomDistance;// _zoomCurveEvaluator.GetDistanceFromZoomFraction(zoomFraction);
+                elevMeters = _zoomCurveEvaluator.GetElevationFromDistance(distance);
+                pitchDegrees = _zoomCurveEvaluator.GetAngleFromDistance(distance); //60;
+
+                x = -distance * Mathf.Sin(rotationAngleRadians);
+                z = -distance * Mathf.Cos(rotationAngleRadians);
+                offsetPos = new Vector3(x, elevMeters, z);
 
                 Vector3 targetPos = _focusObject.transform.position + offsetPos;// + _gestureTracker.CameraMovement;
                 Quaternion targetRot = Quaternion.Euler(pitchDegrees, rotationAngleDegrees, 0.0f);
 
                 //For update function to correctly update position dynamically
                 _gestureTracker.MaxCameraMovement = _gestureTracker.CameraMovement = new Vector3(x, 0, z) + _focusObject.transform.position;
+                Debug.Log($"Min {_gestureTracker.MaxCameraMovement}");
+
 
                 Vector3 currentCamPos = _camera.transform.position;
                 Quaternion currentCamRot = _camera.transform.rotation;
@@ -212,6 +246,17 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
         {
             _isFacingOn = value;
             _gestureTracker.IsTrueNorthFacing = value;
+    
+            if (value)
+            {
+                if (_rotateCoroutine != null)
+                {
+                    StopCoroutine(_rotateCoroutine);
+                    _rotateCoroutine = null;
+                }
+
+                _rotateToTrueNorthFacing = StartCoroutine(RotateToTrueHeading());
+            }
         }
         public void Update()
         {
@@ -228,16 +273,18 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
             if (IsNavigating)
             {
                 float rotationAngleDegrees = _gestureTracker.RotationAngleDegrees;
+
                 if (_isFacingOn)
                 {
-                    rotationAngleDegrees += Input.compass.trueHeading;
+                    if (_rotateToTrueNorthFacing == null)
+                        rotationAngleDegrees += Input.compass.trueHeading;
+                    else
+                        rotationAngleDegrees += _currentAnimatingValueForTrueNorthFacing;
                 }
                 else
                 {
                     if (_rotateCoroutine == null && _gestureTracker.RotationAngleDegrees != -_heading)
-                    {
                         _rotateCoroutine = StartCoroutine(RotateBackToOrigin());
-                    }
                 }
 
                 rotationAngleDegrees += _heading;
@@ -291,13 +338,35 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
 
                 if (_gestureTracker.CameraMovement != (offsetPos + _focusObject.transform.position) && _returnToOriginalPosCoroutine == null)
                     _returnToOriginalPosCoroutine = StartCoroutine(MoveBackToOrigin());
-                     
-                _camera.transform.position = new Vector3(0, elevMeters, 0) + _gestureTracker.CameraMovement;
+
+                //Normalize y to avoid zooming in/out with extreme gesture gesture
+                var cameraNewPos = new Vector3(0, elevMeters, 0) + _gestureTracker.CameraMovement;
+                cameraNewPos = new Vector3(cameraNewPos.x, Mathf.Clamp(cameraNewPos.y, 300f, 1700f), cameraNewPos.z);
+                _gestureTracker.CameraMovement = cameraNewPos - new Vector3(0, elevMeters, 0);
+
+
+                _camera.transform.position = cameraNewPos;
                 _camera.transform.rotation = Quaternion.Euler(pitchDegrees, rotationAngleDegrees, 0.0f);
             }
             _focusObject.transform.localScale = Vector3.one * 30 * Mathf.Clamp(_gestureTracker.ZoomFraction, 0.3f, 1f);
         }
 
+
+        IEnumerator RotateToTrueHeading()
+        {
+            float moveDuration = 0.5f;
+            float elapsedTime = 0f;
+
+            var targetAngle = Input.compass.trueHeading;
+            while (elapsedTime < moveDuration)
+            {
+                elapsedTime += Time.deltaTime;
+                var lerpFactor = elapsedTime / moveDuration;
+                _currentAnimatingValueForTrueNorthFacing = Mathf.Lerp(0, targetAngle, lerpFactor);
+                yield return null;
+            }
+            _rotateToTrueNorthFacing = null;
+        }
         IEnumerator RotateBackToOrigin()
         {
             float maxSkip = 15;

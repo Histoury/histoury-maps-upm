@@ -14,7 +14,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera.Internal.Input
     /// </summary>
     internal class CameraGestureTracker : IScreenInputGesture
     {
-        public bool IsNavigating;
+        public bool IsNavigating = true;
         public bool IsTrueNorthFacing;
 
         private const float GroundClampCosThreshold = -0.1f;
@@ -70,7 +70,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera.Internal.Input
         /// </summary>
         public float RotationAngleDegrees { get; private set; }
 
-
+        public Vector3 MinCameraMovement;
         public Vector3 MaxCameraMovement;
         public Vector3 CameraMovement { get; set; }
 
@@ -230,7 +230,8 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera.Internal.Input
 
             ZoomFraction = Mathf.Clamp01(ZoomFraction + pinchChange * _settings.TouchPinchZoomSpeed);
 
-            if (!IsNavigating && ZoomFraction > 0.3f && ZoomFraction <1f)
+
+            if (!IsNavigating)
             {
                 Vector2 pinchMidPoint = (touch0Pos + touch1Pos) / 2;
                 pinchMidPoint.x *= Screen.width;  // Convert normalized X to pixel X
@@ -262,17 +263,13 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera.Internal.Input
                 // Apply movement in the correct direction, based on pinchChange (invert if zooming in)
                 if (pinchChange > 0)  // Zooming in
                 {
-                    CameraMovement += -directionToPinch * movementMagnitude;
-                    
+                    if (_raycastCamera.transform.position.y < 1736f)
+                        CameraMovement += -directionToPinch * movementMagnitude;
                 }
                 else  // Zooming out
                 {
-                    CameraMovement += directionToPinch * movementMagnitude;
-                    CameraMovement = new Vector3(
-                        CameraMovement.x,
-                        Mathf.Min(CameraMovement.y, MaxCameraMovement.y),
-                        CameraMovement.z
-                        );
+                    if (_raycastCamera.transform.position.y > 300f)
+                        CameraMovement += directionToPinch * movementMagnitude;
                 }
             }
 
@@ -535,7 +532,6 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera.Internal.Input
                     // No delta on the first frame, fix by using initial swipe position
                     _lastSwipePosition = swipePosition;
                 }
-
 
                 if (IsNavigating && !IsTrueNorthFacing)
                 {
