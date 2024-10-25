@@ -21,16 +21,16 @@ namespace Niantic.Lightship.Maps.Themes
 
         private static readonly int Rotation = Shader.PropertyToID("_Rotation");
 
-        private void Update()
-        {
-            if (RenderSettings.skybox.HasProperty(Rotation))
-            {
-                RenderSettings.skybox.SetFloat(Rotation, Time.time * _animSpeed);
-            }
-            else
-            {
+        //private void Update()
+        //{
+            //if (RenderSettings.skybox.HasProperty(Rotation))
+            //{
+                //RenderSettings.skybox.SetFloat(Rotation, Time.time * _animSpeed);
+            //}
+            //else
+            //{
                 //Log.Warn("Skybox does not contain a rotation property.");
-            }
-        }
+            //}
+        //}
     }
 }
