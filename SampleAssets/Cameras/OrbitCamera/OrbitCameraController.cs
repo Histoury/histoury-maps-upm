@@ -70,7 +70,6 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
                 _maximumPitchDegrees,
                 _verticalFocusOffset);
 
-            //_gestureTracker.IsTrueNorthFacing = false;
         }
 
         public void SetIsNavigating(bool value)
@@ -356,6 +355,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
         {
             float moveDuration = 0.5f;
             float elapsedTime = 0f;
+            _heading = -_gestureTracker.RotationAngleDegrees;
 
             var targetAngle = Input.compass.trueHeading;
             while (elapsedTime < moveDuration)

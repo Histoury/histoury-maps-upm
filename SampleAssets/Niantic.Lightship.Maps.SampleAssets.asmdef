@@ -15,7 +15,7 @@
         "Niantic.Lightship.Maps.Async.dll",
         "Niantic.Platform.Debugging.dll"
     ],
-    "autoReferenced": false,
+    "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
     "noEngineReferences": false
