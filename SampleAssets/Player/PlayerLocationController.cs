@@ -20,8 +20,17 @@ namespace Niantic.Lightship.Maps.SampleAssets.Player
     /// </summary>
     public class PlayerLocationController : MonoBehaviour
     {
+        public static PlayerLocationController Instance;
+        private void Awake()
+        {
+            Instance = this;
+        }
         [SerializeField]
         public LightshipMapView _lightshipMapView;
+
+        public double SelectedSiteLat;
+        public double SelectedSiteLng;
+        public bool isTourSelected;
 
         [SerializeField]
         private float _editorMovementSpeed;
@@ -48,12 +57,27 @@ namespace Niantic.Lightship.Maps.SampleAssets.Player
         private static bool IsLocationServiceInitializing
             => Input.location.status == LocationServiceStatus.Initializing;
 
+        [SerializeField] LatLng _initialLatLng;
+
         private void Start()
+        {
+
+        }
+
+        private void OnEnable()
         {
             _lightshipMapView.MapOriginChanged += OnMapViewOriginChanged;
             _currentMapPosition = _targetMapPosition = transform.position;
 
             StartCoroutine(UpdateGpsLocation());
+        }
+        private void OnDisable()
+        {
+            _lightshipMapView.MapOriginChanged -= OnMapViewOriginChanged;
+            _initialLatLng = new LatLng(0, 0);
+            SelectedSiteLat = 0;
+            SelectedSiteLng = 0;
+            isTourSelected = false;
         }
 
         private void OnMapViewOriginChanged(LatLng center)
@@ -125,10 +149,24 @@ namespace Niantic.Lightship.Maps.SampleAssets.Player
                 while (isActiveAndEnabled)
                 {
                     var gpsInfo = Input.location.lastData;
-                    if (gpsInfo.timestamp > _lastGpsUpdateTime)
+                    if (gpsInfo.timestamp > _lastGpsUpdateTime || (_initialLatLng.Latitude == 0 && isTourSelected))
                     {
+
                         _lastGpsUpdateTime = gpsInfo.timestamp;
                         var location = new LatLng(gpsInfo.latitude, gpsInfo.longitude);
+
+                        if (isTourSelected)
+                        {
+                            if (_initialLatLng.Latitude == 0)
+                                _initialLatLng = location;
+
+                            double resultLat = location.Latitude - (_initialLatLng.Latitude - SelectedSiteLat);
+                            double resultLng = location.Longitude - (_initialLatLng.Longitude - SelectedSiteLng);
+                            location = new LatLng(resultLat, resultLng);
+
+                        }
+
+
                         UpdatePlayerLocation(location);
                     }
 
