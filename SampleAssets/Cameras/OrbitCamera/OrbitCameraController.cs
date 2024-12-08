@@ -17,6 +17,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
     /// </summary>
     public class OrbitCameraController : MonoBehaviour
     {
+
         public bool IsNavigating;
         [SerializeField] private float _zoomFraction;
         [SerializeField]
@@ -49,6 +50,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
         private IZoomCurveEvaluator _zoomCurveEvaluator;
 
         [SerializeField] float _heading;
+        public float TrueHeading;
         public bool _isFacingOn;
         [SerializeField] Coroutine _rotateCoroutine;
         [SerializeField] Coroutine _rotateToTrueNorthFacing;
@@ -276,7 +278,9 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
                 if (_isFacingOn)
                 {
                     if (_rotateToTrueNorthFacing == null)
-                        rotationAngleDegrees += Input.compass.trueHeading;
+                    {
+                        rotationAngleDegrees += TrueHeading;
+                    }
                     else
                         rotationAngleDegrees += _currentAnimatingValueForTrueNorthFacing;
                 }
@@ -357,7 +361,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
             float elapsedTime = 0f;
             _heading = -_gestureTracker.RotationAngleDegrees;
 
-            var targetAngle = Input.compass.trueHeading;
+            var targetAngle = TrueHeading;
             while (elapsedTime < moveDuration)
             {
                 elapsedTime += Time.deltaTime;
@@ -404,7 +408,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
             float rotationAngleDegrees = _gestureTracker.RotationAngleDegrees;
             if (_isFacingOn)
             {
-                rotationAngleDegrees += Input.compass.trueHeading;
+                rotationAngleDegrees += TrueHeading;
             }
 
             rotationAngleDegrees += _heading;
