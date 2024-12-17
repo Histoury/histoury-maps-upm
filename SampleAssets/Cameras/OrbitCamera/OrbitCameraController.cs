@@ -341,7 +341,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
 
                 if (_gestureTracker.CameraMovement != (offsetPos + _focusObject.transform.position) && _returnToOriginalPosCoroutine == null)
                     _returnToOriginalPosCoroutine = StartCoroutine(MoveBackToOrigin());
-
+                
                 //Normalize y to avoid zooming in/out with extreme gesture gesture
                 var cameraNewPos = new Vector3(0, elevMeters, 0) + _gestureTracker.CameraMovement;
                 cameraNewPos = new Vector3(cameraNewPos.x, Mathf.Clamp(cameraNewPos.y, 300f, 1700f), cameraNewPos.z);

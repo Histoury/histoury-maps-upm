@@ -74,6 +74,12 @@ namespace Niantic.Lightship.Maps.SampleAssets.Player
         private void OnDisable()
         {
             _lightshipMapView.MapOriginChanged -= OnMapViewOriginChanged;
+            Reset();
+        }
+
+        public void Reset()
+        {
+            _lastGpsUpdateTime = 0;
             _initialLatLng = new LatLng(0, 0);
             SelectedSiteLat = 0;
             SelectedSiteLng = 0;
