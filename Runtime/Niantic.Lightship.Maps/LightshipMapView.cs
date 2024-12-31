@@ -508,7 +508,6 @@ namespace Niantic.Lightship.Maps
             var pooledMapTileObject = _mapTileObjectPool.GetOrCreate();
             var mapTileObject = pooledMapTileObject.Value;
             mapTileObject.AddToScene(mapTile, this, _activeTilesParent.transform, _currentTheme);
-
             _activeMapTiles[mapTile.Id] = mapTile;
             _activeMapTileObjects[mapTile.Id] = pooledMapTileObject;
 

@@ -72,6 +72,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
                 _maximumPitchDegrees,
                 _verticalFocusOffset);
 
+            StartCoroutine(MoveBackToOrigin(true));
         }
 
         public void SetIsNavigating(bool value)
@@ -86,7 +87,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
                     var zoomCurveEvaluator = new ZoomCurveEvaluator(
                         _minimumZoomDistance,
                         _maximumZoomDistance,
-                        30f,
+                        _minimumPitchDegrees,
                         _maximumPitchDegrees,
                         _verticalFocusOffset);
                     _zoomCurveEvaluator = zoomCurveEvaluator;
@@ -171,8 +172,8 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
                     elapsedTime += Time.deltaTime;
                     float lerpFactor = Mathf.Clamp01(elapsedTime / transitionDuration);
                     _gestureTracker.ZoomFraction = Mathf.Lerp(1f, 0.3f, lerpFactor);
-                    _focusObject.transform.localScale = Vector3.one * 30 * Mathf.Clamp(_gestureTracker.ZoomFraction, 0.3f, 1f);
-
+                    float scaleMultiplier = IsNavigating == true ? 10f : 30f;
+                    _focusObject.transform.localScale = Vector3.one * Mathf.Clamp(_gestureTracker.ZoomFraction, 0.3f, 1f) * scaleMultiplier;
                     _camera.transform.position = Vector3.Lerp(currentCamPos, targetPos, lerpFactor);
                     _camera.transform.rotation = Quaternion.Slerp(currentCamRot, targetRot, lerpFactor);
 
@@ -229,7 +230,8 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
                     elapsedTime += Time.deltaTime;
                     float lerpFactor = Mathf.Clamp01(elapsedTime / transitionDuration);
                     _gestureTracker.ZoomFraction = Mathf.Lerp(0.3f, 1f, lerpFactor);
-                    _focusObject.transform.localScale = Vector3.one * 30 * Mathf.Clamp(_gestureTracker.ZoomFraction, 0.3f, 1f);
+                    float scaleMultiplier = IsNavigating == true ? 10f : 30f;
+                    _focusObject.transform.localScale = Vector3.one * Mathf.Clamp(_gestureTracker.ZoomFraction, 0.3f, 1f)* scaleMultiplier;
 
                     _camera.transform.position = Vector3.Lerp(currentCamPos, targetPos, lerpFactor);
                     _camera.transform.rotation = Quaternion.Slerp(currentCamRot, targetRot, lerpFactor);
@@ -351,7 +353,8 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
                 _camera.transform.position = cameraNewPos;
                 _camera.transform.rotation = Quaternion.Euler(pitchDegrees, rotationAngleDegrees, 0.0f);
             }
-            _focusObject.transform.localScale = Vector3.one * 30 * Mathf.Clamp(_gestureTracker.ZoomFraction, 0.3f, 1f);
+            float scaleMultiplier = IsNavigating == true ? 10f : 30f;
+            _focusObject.transform.localScale = Vector3.one * Mathf.Clamp(_gestureTracker.ZoomFraction, 0.3f, 1f) * scaleMultiplier;
         }
 
 
@@ -385,17 +388,15 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
             _heading = -_gestureTracker.RotationAngleDegrees;
             _rotateCoroutine = null;
         }
-        private IEnumerator MoveBackToOrigin()
+        private IEnumerator MoveBackToOrigin(bool isIdle = false)
         {
             var currentMovement = _gestureTracker.CameraMovement;
 
-
-            bool IsIdle = false;
-            while (!IsIdle)
+            while (!isIdle)
             {
-                yield return new WaitForSeconds(5f);  // Optional delay before moving back to origin
+                yield return new WaitForSeconds(5f);
                 if (currentMovement == _gestureTracker.CameraMovement)
-                    IsIdle = true;
+                    isIdle = true;
                 else
                     currentMovement = _gestureTracker.CameraMovement;
             }

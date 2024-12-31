@@ -24,6 +24,9 @@ namespace Niantic.Lightship.Maps.SampleAssets.Player
         private void Awake()
         {
             Instance = this;
+            SelectedSiteLat = 40.806111;
+            SelectedSiteLng = 14.35;
+            isTourSelected = true;
         }
         [SerializeField]
         public LightshipMapView _lightshipMapView;
@@ -81,9 +84,9 @@ namespace Niantic.Lightship.Maps.SampleAssets.Player
         {
             _lastGpsUpdateTime = 0;
             _initialLatLng = new LatLng(0, 0);
-            SelectedSiteLat = 0;
-            SelectedSiteLng = 0;
-            isTourSelected = false;
+            SelectedSiteLat = 40.806111;
+            SelectedSiteLng = 14.35;
+            isTourSelected = true;
         }
 
         private void OnMapViewOriginChanged(LatLng center)
@@ -183,6 +186,16 @@ namespace Niantic.Lightship.Maps.SampleAssets.Player
                 // need to query location updates continuously.
                 Input.location.Stop();
             }
+        }
+
+        public (double, double) GetPlayerCurrentLocation()
+        {
+            var gpsInfo = Input.location.lastData;
+            var location = new LatLng(gpsInfo.latitude, gpsInfo.longitude);
+
+            double resultLat = location.Latitude - (_initialLatLng.Latitude - SelectedSiteLat);
+            double resultLng = location.Longitude - (_initialLatLng.Longitude - SelectedSiteLng);
+            return (resultLat, resultLng);
         }
 
         private void UpdatePlayerLocation(in LatLng location)
