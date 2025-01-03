@@ -82,6 +82,10 @@ namespace Niantic.Lightship.Maps
         [DisabledIfFalse(nameof(_startAtDefaultLocation))]
         private SerializableLatLng _defaultLocation;
 
+        public SerializableLatLng TargetLocationLatLng;
+        public SerializableLatLng MinBoundary;
+        public SerializableLatLng MaxBoundary;
+
         [Tooltip("A list of prefabs or GameObjects containing MapLayer components " +
             "that are used while constructing the map view.  These are typically " +
             "used to place objects or to render geometry that may cross maptile " +
@@ -192,6 +196,7 @@ namespace Niantic.Lightship.Maps
 
             Log.Info("Initializing map view");
             _mapView = _lightshipMapManager.CreateMapView();
+
             _mapView.MapTileAdded += OnMapTileAdded;
             _mapView.MapTileRemoved += OnMapTileRemoved;
 
@@ -251,7 +256,6 @@ namespace Niantic.Lightship.Maps
                     // enough that it was already gone by the time we dequeued it here.
                     continue;
                 }
-
                 tileBatch.Add(mapTile);
             }
 
@@ -469,10 +473,13 @@ namespace Niantic.Lightship.Maps
         private void AddMapTiles(IReadOnlyList<IMapTile> mapTiles)
         {
             var tileCount = mapTiles.Count;
-            var tilePairs = new TilePair[tileCount];
+            List<TilePair> tilePairs = new List<TilePair>();
 
             for (var i = 0; i < tileCount; i++)
             {
+                if (!isInBound(mapTiles[i]))
+                    continue;
+                Debug.Log($"Add map tile");
                 var mapTile = mapTiles[i];
                 var (added, mapTileObject) = AddMapTileHelper(mapTile);
                 if (!added)
@@ -481,14 +488,50 @@ namespace Niantic.Lightship.Maps
                     continue;
                 }
 
-                tilePairs[i] = new TilePair(mapTileObject, mapTile, tile =>
+                
+                tilePairs.Add(new TilePair(mapTileObject, mapTile, tile =>
                 {
                     tile.MapTileObject.SetLayerOnAllChildren(gameObject.layer);
                     MapTileAdded?.Invoke(tile.Tile, tile.MapTileObject);
-                });
+                }));
             }
 
             MapTileObject.Build(tilePairs, this);
+        }
+   
+        private bool isInBound(IMapTile mapTile)
+        {
+            var mapTileCoor = GetMapTileCoordinate(mapTile);
+            Debug.Log($"mapTileCoor: {mapTileCoor.Latitude}, {mapTileCoor.Longitude}");
+            if (mapTileCoor.Latitude >= MinBoundary.Latitude &&
+                mapTileCoor.Latitude <= MaxBoundary.Latitude &&
+                mapTileCoor.Longitude >= MinBoundary.Longitude &&
+                mapTileCoor.Longitude <= MaxBoundary.Longitude)
+                return true;
+
+            Debug.Log($"Is out of bound: {mapTile.TileCoordinateString}");
+            return false;
+        }
+
+        private SerializableLatLng GetMapTileCoordinate(IMapTile mapTile)
+        {
+            int zoom = int.Parse(mapTile.TileCoordinateString.Split(", ")[0]);
+            int x = int.Parse(mapTile.TileCoordinateString.Split(", ")[1]);
+            int y = int.Parse(mapTile.TileCoordinateString.Split(", ")[2]);
+
+            var (lat, lng) = TileToLatLon(zoom, x, y);
+            return new SerializableLatLng(lat, lng);
+        }
+        public static (double latitude, double longitude) TileToLatLon(int zoom, int x, int y)
+        {
+            // Longitude calculation
+            double longitude = x / Math.Pow(2.0, zoom) * 360.0 - 180.0;
+
+            // Latitude calculation
+            double n = Math.PI - (2.0 * Math.PI * y) / Math.Pow(2.0, zoom);
+            double latitude = Math.Atan(Math.Sinh(n)) * (180.0 / Math.PI);
+
+            return (latitude, longitude);
         }
 
         /// <summary>
@@ -507,6 +550,8 @@ namespace Niantic.Lightship.Maps
 
             var pooledMapTileObject = _mapTileObjectPool.GetOrCreate();
             var mapTileObject = pooledMapTileObject.Value;
+            
+            
             mapTileObject.AddToScene(mapTile, this, _activeTilesParent.transform, _currentTheme);
             _activeMapTiles[mapTile.Id] = mapTile;
             _activeMapTileObjects[mapTile.Id] = pooledMapTileObject;

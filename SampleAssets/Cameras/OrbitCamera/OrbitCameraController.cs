@@ -65,6 +65,8 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
             _gestureTracker = new CameraGestureTracker(_camera, _focusObject, _gestureSettings);
             _inputService = new InputService(_gestureTracker);
 
+            _gestureTracker.IsNavigating = false;
+
             _zoomCurveEvaluator = new ZoomCurveEvaluator(
                 _minimumZoomDistance,
                 _maximumZoomDistance,
