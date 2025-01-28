@@ -123,11 +123,8 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
 
                     _currentTopdownZoomDistance = 1000f;
                 }
-
                 StartCoroutine(StartTransition());
             }
-
-
         }
 
         IEnumerator StartTransition()
@@ -290,8 +287,10 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
                 }
                 else
                 {
+                    /*
                     if (_rotateCoroutine == null && _gestureTracker.RotationAngleDegrees != -_heading)
                         _rotateCoroutine = StartCoroutine(RotateBackToOrigin());
+                    */
                 }
 
                 rotationAngleDegrees += _heading;
@@ -402,8 +401,6 @@ namespace Niantic.Lightship.Maps.SampleAssets.Cameras.OrbitCamera
                 else
                     currentMovement = _gestureTracker.CameraMovement;
             }
-
-
             Debug.Log("Start return");
 
             float moveDuration = 0.5f;

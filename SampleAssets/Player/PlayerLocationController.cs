@@ -164,6 +164,7 @@ namespace Niantic.Lightship.Maps.SampleAssets.Player
                         _lastGpsUpdateTime = gpsInfo.timestamp;
                         var location = new LatLng(gpsInfo.latitude, gpsInfo.longitude);
 
+#if UNITY_EDITOR
                         if (isTourSelected)
                         {
                             if (_initialLatLng.Latitude == 0)
@@ -172,9 +173,8 @@ namespace Niantic.Lightship.Maps.SampleAssets.Player
                             double resultLat = location.Latitude - (_initialLatLng.Latitude - SelectedSiteLat);
                             double resultLng = location.Longitude - (_initialLatLng.Longitude - SelectedSiteLng);
                             location = new LatLng(resultLat, resultLng);
-
                         }
-
+#endif                      
 
                         UpdatePlayerLocation(location);
                     }
@@ -193,8 +193,13 @@ namespace Niantic.Lightship.Maps.SampleAssets.Player
             var gpsInfo = Input.location.lastData;
             var location = new LatLng(gpsInfo.latitude, gpsInfo.longitude);
 
+#if UNITY_EDITOR
             double resultLat = location.Latitude - (_initialLatLng.Latitude - SelectedSiteLat);
             double resultLng = location.Longitude - (_initialLatLng.Longitude - SelectedSiteLng);
+#else
+            double resultLat = location.Latitude;// - (_initialLatLng.Latitude - SelectedSiteLat);
+            double resultLng = location.Longitude;// - (_initialLatLng.Longitude - SelectedSiteLng);
+#endif
             return (resultLat, resultLng);
         }
 
