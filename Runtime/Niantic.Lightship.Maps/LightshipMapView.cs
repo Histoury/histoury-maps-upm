@@ -501,6 +501,8 @@ namespace Niantic.Lightship.Maps
    
         private bool isInBound(IMapTile mapTile)
         {
+            return true;
+
             var mapTileCoor = GetMapTileCoordinate(mapTile);
             Debug.Log($"mapTileCoor: {mapTileCoor.Latitude}, {mapTileCoor.Longitude}");
             if (mapTileCoor.Latitude >= MinBoundary.Latitude &&
