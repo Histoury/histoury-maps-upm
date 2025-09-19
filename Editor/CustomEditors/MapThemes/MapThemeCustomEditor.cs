@@ -69,7 +69,7 @@ namespace Niantic.Lightship.Maps.Editor.CustomEditors.MapThemes
                     })
                     .ToList();
 
-                InitializeAddBuilderDropDown(builderTypes).DropDown(_addBuilderButton.worldBound, _addBuilderButton);
+                InitializeAddBuilderDropDown(builderTypes).DropDown(_addBuilderButton.worldBound, _addBuilderButton, false);
             };
         }
 

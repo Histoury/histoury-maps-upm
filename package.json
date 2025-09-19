@@ -1,6 +1,6 @@
 {
   "name": "com.niantic.lightship.maps",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "displayName": "Lightship Maps SDK",
   "description": "This library is used to stream and render Niantic MapTiles. Various sample scenes, starter prefabs, and sample code are also provided.",
   "unity": "2021.3",
